@@ -170,7 +170,7 @@
 
   /* 사이트 메뉴 */
   $("#sitemenu").innerHTML = Object.entries(CFG.sites).map(([k, v]) =>
-    `<a href="${({"factory": "https://gjmap.kr/", "auction": "https://gm24.kr/", "house": "https://chonjip.kr/"})[k] || "https://sinsa-realty.github.io/map/" + k + "/"}" class="${k === SITE ? "cur" : ""}"><i style="background:${v.color}"></i>${esc(v.full)}<small>${k === SITE ? "지금 보는 곳" : ""}</small></a>`).join("");
+    `<a href="${({"factory": "https://gjmap.kr/", "auction": "https://auction24.kr/", "house": "https://chonjip.kr/"})[k] || "https://sinsa-realty.github.io/map/" + k + "/"}" class="${k === SITE ? "cur" : ""}"><i style="background:${v.color}"></i>${esc(v.full)}<small>${k === SITE ? "지금 보는 곳" : ""}</small></a>`).join("");
   $("#sitepick").onclick = () => { const m = $("#sitemenu"); m.hidden = !m.hidden; };
   document.addEventListener("click", (e) => { if (!e.target.closest("#sitepick,#sitemenu")) $("#sitemenu").hidden = true; });
 
