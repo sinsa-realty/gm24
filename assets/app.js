@@ -31,6 +31,10 @@
     auction: { segs: [["전체"], ["주택", (m) => /주택|단독|다가구/.test(m.kind)], ["토지", (m) => /대지|농지|과수원|주차장/.test(m.kind)], ["상가·건물", (m) => /근린|상가|지식산업|숙박|다가구|건물/.test(m.kind)], ["아파트·빌라", (m) => /아파트|빌라|오피스텔/.test(m.kind)], ["공장·창고", (m) => /공장|창고/.test(m.kind)], ["추천", (m) => m.judge === "추천"]],
       price: [["5천만 이하", 0, 5000], ["5천~1억", 5000, M], ["1~3억", M, 3 * M], ["3억 넘게", 3 * M, 1e12]],
       areaKey: "land", areaName: "토지", area: [["100평 이하", 0, 100], ["100~300평", 100, 300], ["300평 넘게", 300, 1e9]] },
+    motel: { segs: [["전체"], ["모텔", (m) => /모텔|여관|숙박/.test(m.kind) && !/호텔|펜션|게스트|고시/.test(m.kind)], ["호텔", (m) => /호텔/.test(m.kind)], ["펜션·풀빌라", (m) => /펜션|풀빌라|글램핑/.test(m.kind)], ["게스트하우스·고시원", (m) => /게스트|호스텔|고시/.test(m.kind)], ["경매", (m) => m.low != null], ["임대", (m) => m.rent != null]],
+      price: [["10억 이하", 0, 10 * M], ["10~20억", 10 * M, 20 * M], ["20~30억", 20 * M, 30 * M], ["30~50억", 30 * M, 50 * M], ["50억 넘게", 50 * M, 1e12]],
+      rent: [["월 500만 이하", 0, 500], ["월 500~1000만", 500, 1000], ["월 1000만 넘게", 1000, 1e9]],
+      areaKey: "bld", areaName: "연면적", area: [["200평 이하", 0, 200], ["200~400평", 200, 400], ["400~700평", 400, 700], ["700평 넘게", 700, 1e9]] },
   };
   const R = RULES[SITE];
 
@@ -56,6 +60,7 @@
     return a.join("") || "가격 문의";
   }
   const ICON = {
+    motel: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 50V18M6 38h52v12M58 38V30a8 8 0 0 0-8-8H28v16"/><circle cx="17" cy="30" r="5"/></svg>',
     factory: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3"><path d="M6 56V30l14 8v-8l14 8v-8l14 8V10h10v46z"/><path d="M14 46h6M28 46h6M42 46h6"/></svg>',
     house: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3"><path d="M8 30 32 10l24 20"/><path d="M14 26v30h36V26"/><path d="M27 56V40h10v16"/></svg>',
     land: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3"><path d="M4 50c10-14 18-14 28-4s18 6 28-8"/><path d="M4 58h56"/><circle cx="46" cy="16" r="6"/></svg>',
@@ -124,7 +129,7 @@
     .ap-t{width:100%;border-collapse:collapse;font-size:14px}.ap-t td,.ap-t th{border-bottom:1px solid #e5e7eb;padding:7px 4px;text-align:left}.ap-t .fu{color:#94a3b8}
     .ap-calc label{display:block;font-size:14px;margin:4px 0}.ap-calc input{width:100%;box-sizing:border-box;font-size:18px;padding:10px;border:1.5px solid #cbd5e1;border-radius:10px}
     .ap-links{display:grid;grid-template-columns:1fr 1fr;gap:8px}.ap-links a{display:block;text-align:center;padding:11px 6px;border-radius:10px;background:#eef2f7;color:#111;text-decoration:none;font-size:14px}
-    .ap-rep{display:grid;gap:8px}.ap-rep div{border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 12px}.ap-rep b{font-size:15px}.ap-rep em{float:right;font-style:normal;color:#0b5cad;font-weight:700}
+    .ap-rep{display:grid;gap:8px}.ap-rep div{border:1.5px solid #e2e8f0;border-radius:6px;padding:10px 12px}.ap-rep b{font-size:15px}.ap-rep em{float:right;font-style:normal;color:#0b5cad;font-weight:700}
     .ap-rep p{margin:4px 0 0;font-size:13px;color:#556}.ap-go{display:flex;gap:8px;margin-top:10px}.ap-go a{flex:1;text-align:center;padding:12px 4px;border-radius:10px;text-decoration:none;font-weight:700;color:#fff;background:#1f2937}
     .ap-faq details{border-bottom:1px solid #e5e7eb;padding:9px 0}.ap-faq summary{font-weight:700;cursor:pointer}.ap-faq p{margin:6px 0 0;color:#334}
     .ap-near a{display:block;padding:9px 0;border-bottom:1px solid #eef;color:inherit;text-decoration:none;font-size:14px}.ap-near small{color:#667}
@@ -392,6 +397,32 @@
   }
   function toast(t) { const d = document.createElement("div"); d.className = "toast"; d.textContent = t; document.body.append(d); setTimeout(() => d.remove(), 2000); }
 
+
+  /* ── 모텔 상세: 적정가 계산기·계약 전 확인·사장님 사랑방 (모텔사이트적용.py) ── */
+  function motelPlus(m) {
+    if (SITE !== "motel") return "";
+    const rooms = m.rooms || "";
+    const chk = ["영업신고 객실 수와 실제 객실 수가 같은가", "건축물대장 위반건축물 표시가 없는가", "소방시설 완비증명(영업 승계 때 필요)", "정화조 용량·급배수·보일러 설비 상태", "엘리베이터·주차 대수", "무인관제·키오스크·객실관리 프로그램 승계 조건", "OTA(야놀자·여기어때) 계정·후기 승계 방법", "직원(캐셔·룸메이드) 승계와 급여", "미납 관리비·공과금·세금", "용도지역(숙박 가능 지역인지)"];
+    return `<section class="d-sec"><h2>모텔 적정가 계산기 <span class="ckind">(운영수익에서 거꾸로 계산)</span></h2>
+      <div class="mcalc">
+        <label>객실 수 <input id="mc_r" type="number" inputmode="numeric" value="${esc(rooms || 25)}"> 실</label>
+        <label>객실당 월 매출 <input id="mc_s" type="number" inputmode="numeric" value="200"> 만원</label>
+        <label>운영비 비율 <input id="mc_c" type="number" inputmode="numeric" value="50"> %</label>
+        <label>목표 수익률 <input id="mc_y" type="number" inputmode="numeric" value="10"> %</label>
+      </div>
+      <dl class="rows" id="mc_out"></dl>
+      <p class="note">공식: 총사업비 상한 = 연간 운영수익 ÷ 목표 수익률. 여기서 공사비·취득세(4.6%)·중개보수·오픈 준비비를 빼면 낼 수 있는 매입가입니다. 운영비 50%는 모를 때 쓰는 보수적인 가정입니다.</p></section>
+      <section class="d-sec"><h2>계약 전 꼭 확인할 것</h2><ul class="mchk">${chk.map((t) => `<li><label><input type="checkbox"> ${t}</label></li>`).join("")}</ul>
+      <p class="note">확인이 어려운 항목은 전화 주시면 공부(건축물대장·토지이용계획) 떼어 같이 봐 드립니다.</p></section>
+      <section class="d-sec"><h2>사장님 사랑방</h2><p style="margin:0 0 10px;line-height:1.6">모텔 사장님·창업 준비하시는 분들끼리 운영 노하우, 황당 손님 이야기, 매출 고민을 나누는 공간입니다.</p>
+      <div class="share"><a class="btn kakao" style="flex:1" href="${CFG.kakaoChannel}" target="_blank" rel="noopener">카톡으로 이야기 보내기</a><a class="btn" style="flex:1" href="${SMS}?body=${encodeURIComponent("[모텔 매물 의뢰] 지역: / 객실 수: / 희망가: ")}">내 모텔 내놓기(문자)</a></div></section>`;
+  }
+  function bindMotel() {
+    const g = (id) => +(document.getElementById(id)?.value || 0), out = document.getElementById("mc_out"); if (!out) return;
+    const f = () => { const mon = g("mc_r") * g("mc_s"), op = mon * (1 - g("mc_c") / 100), yr = op * 12, cap = g("mc_y") ? yr / (g("mc_y") / 100) : 0;
+      out.innerHTML = [["월 매출", won(mon)], ["월 운영수익", won(op)], ["연 운영수익", won(yr)], ["총사업비 상한", won(cap)], ["취득세(4.6%) 빼면", won(cap / 1.046)]].map((r) => `<div><dt>${r[0]}</dt><dd>${r[1]}</dd></div>`).join(""); };
+    ["mc_r", "mc_s", "mc_c", "mc_y"].forEach((id) => { const e = document.getElementById(id); if (e) e.oninput = f; }); f();
+  }
   function detail(m) {
     const D = $("#detail");
     const facts = [];
@@ -405,6 +436,7 @@
     else { if (m.sale != null) rows.push(["매매가", won(m.sale)]); if (m.rent != null) rows.push(["보증금 / 월세", `${won(m.dep || 0)} / ${won(m.rent)}`]); }
     rows.push(["대지 면적", m.land != null ? `${py(m.land)} (${sqm(m.land)})` : null], ["건물 면적", m.bld != null ? `${py(m.bld)} (${sqm(m.bld)})` : null]);
     if (m.floors) rows.push(["층수", m.floors]);
+    if (SITE === "motel") rows.push(["객실 수", m.rooms ? m.rooms + "실" : null], ["월 매출", m.sales ? won(m.sales) : null], ["주차", m.park || null], ["엘리베이터", m.elev || null]);
     if (SITE === "factory") rows.push(["전력", null], ["층고", null], ["호이스트", null], ["진입로", null]);
     if (SITE === "land") rows.push(["지목", null], ["용도지역", null], ["도로", null]);
     const hero = vok(m, "yt") ? `<img src="https://i.ytimg.com/vi/${m.yt}/hqdefault.jpg" alt="${esc(place(m))} 영상 장면"><a class="play" href="https://youtu.be/${m.yt}" target="_blank" rel="noopener">▶ 영상으로 보기</a>`
@@ -426,11 +458,13 @@
       ${m.note || m.link ? `<section class="d-sec"><h2>물건 분석</h2>${m.note ? `<p style="line-height:1.65;margin:0 0 12px">${esc(m.note).split(" / ").join("<br>")}</p>` : ""}${m.link ? `<a class="btn" style="display:block;text-align:center;background:#1f2937;color:#fff;padding:12px;border-radius:10px;text-decoration:none" href="${esc(m.link)}" target="_blank" rel="noopener">경매 원문(감정서·현장 사진) 보기</a>` : ""}</section>` : ""}
       ${vok(m, "yt") ? `<section class="d-sec"><h2>영상</h2><div class="share"><a class="btn" style="background:#dc2626;color:#fff;flex:1" href="https://youtu.be/${m.yt}" target="_blank" rel="noopener">▶ 본편 보기</a>${vok(m, "sh") ? `<a class="btn" style="background:#111;color:#fff;flex:1" href="https://youtube.com/shorts/${m.sh}" target="_blank" rel="noopener">▶ 쇼츠</a>` : ""}</div></section>` : ""}
       ${m.low != null ? aucPlus(m) : ""}
+      ${motelPlus(m)}
       <section class="d-sec"><h2>위치 <span class="ckind">(읍·면 근처, 정확한 위치는 상담 시 안내)</span></h2><div class="minimap" id="minimap"></div></section>
       <section class="d-sec"><div class="share"><button type="button" id="dcopy">링크 복사</button><a class="btn kakao" style="flex:1" href="${CFG.kakaoChannel}" target="_blank" rel="noopener">카톡 문의</a></div>
         <p class="note">매물 정보는 등록 당시 기준이며 현장 사정에 따라 달라질 수 있습니다.</p></section>`;
     D.hidden = false; D.scrollTop = 0;
     if (m.low != null) { bindCalc(m); const cp = $("#apcopy"); if (cp) cp.onclick = () => navigator.clipboard && navigator.clipboard.writeText(m.case).then(() => toast("사건번호를 복사했습니다")); }
+    bindMotel();
     $("#callbtn").href = TEL;
     $("#dback").onclick = () => { history.length > 1 ? history.back() : (location.hash = ""); };
     const copy = () => { const u = location.href; (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast("링크를 복사했습니다. 카톡에 붙여 보내세요"), () => prompt("이 주소를 복사하세요", u)); };

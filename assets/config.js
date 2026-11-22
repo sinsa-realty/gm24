@@ -15,6 +15,7 @@ window.MAEMUL_CONFIG = {
     house:    { name: "시골집·전원주택", full: "전국 시골집·전원주택", phone: "staff", color: "#2f5d3a", accent: "#f2a900", icon: "house" },
     land:     { name: "토지",           full: "전국 토지",           phone: "staff", color: "#6b4a24", accent: "#f2a900", icon: "land" },
     building: { name: "빌딩·상가주택",   full: "빌딩·상가주택",        phone: "owner", color: "#2e3463", accent: "#f2a900", icon: "building" },
-    auction:  { name: "경매",           full: "전국 경매 물건",       phone: "owner", color: "#8a2b12", accent: "#f2a900", icon: "auction" }
+    auction:  { name: "경매",           full: "전국 경매 물건",       phone: "owner", color: "#8a2b12", accent: "#f2a900", icon: "auction" },
+    motel:    { name: "모텔·숙박",       full: "전국 모텔·숙박업소",   phone: "owner", color: "#6a2c4a", accent: "#f2a900", icon: "motel" }
   }
 };
