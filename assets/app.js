@@ -400,7 +400,7 @@
     if (facts.length < 3) facts.push([m.sigun, "시·군"]);
     if (facts.length < 3) facts.push([m.kind.replace(/\(.*\)/, ""), "종류"]);
     const rows = [["매물번호", m.id], ["종류", m.kind], ["소재지", `${m.sido} ${place(m)}`]];
-    if (m.low != null) { rows.push(["사건번호", m.case], ["법원", m.court], ["감정가", won(m.appr)], ["최저가", won(m.low)], ["유찰", m.fails ? m.fails + "회" : null], ["입찰일", m.bid]);
+    if (m.low != null) { rows.push(["사건번호", m.case], ["법원", m.court], ["감정가", won(m.appr)], ["최저가", won(m.low)], ["유찰", m.fails ? m.fails + "회" : m.fails === 0 ? "없음(신건·첫 입찰)" : null], ["입찰일", m.bid]);
       [["판정", m.judge], ["사용승인", m.year], ["구조", m.struct], ["매각범위", m.scope], ["주의사항", m.risk]].forEach((r) => { if (r[1]) rows.push(r); }); }
     else { if (m.sale != null) rows.push(["매매가", won(m.sale)]); if (m.rent != null) rows.push(["보증금 / 월세", `${won(m.dep || 0)} / ${won(m.rent)}`]); }
     rows.push(["대지 면적", m.land != null ? `${py(m.land)} (${sqm(m.land)})` : null], ["건물 면적", m.bld != null ? `${py(m.bld)} (${sqm(m.bld)})` : null]);
